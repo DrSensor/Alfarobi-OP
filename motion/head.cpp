@@ -29,7 +29,7 @@ void Head::sweepLeft(const uint16_t panAngle_offset, const uint16_t tiltAngle_in
 {
     pan = degree2raw(panAngle_offset, false);
     port_write(pan);
-    for (tilt = HEAD_PAN_MIN; tilt < HEAD_PAN_MAX; tilt += degree2raw(tiltAngle_increment, true))
+    for (tilt = HEAD_PAN_MIN; tilt < HEAD_PAN_MAX; tilt += degree2raw(tiltAngle_increment, TILT_CONV))
         port_write(tilt);
 }
 
@@ -37,15 +37,27 @@ void Head::sweepRight(const uint16_t panAngle_offset, const uint16_t tiltAngle_i
 {
     pan = degree2raw(panAngle_offset, false);
     port_write(pan);
-    for (tilt = HEAD_PAN_MIN; tilt < HEAD_PAN_MAX; tilt += degree2raw(tiltAngle_increment, true))
+    for (tilt = HEAD_PAN_MIN; tilt < HEAD_PAN_MAX; tilt += degree2raw(tiltAngle_increment, TILT_CONV))
         port_write(tilt);
 }
 
-void Head::moveAt(const uint16_t x, const uint16_t y)
+void Head::panning(const uint16_t angle)
 {
-    pan = x;
-    tilt = y;
+    pan = degree2raw(angle, PAN_CONV);
     port_write(pan);
+}
+
+void Head::tilting(const uint16_t angle)
+{
+    tilt = degree2raw(angle, TILT_CONV);
+    port_write(tilt);
+}
+
+void Head::moveAtAngle(const uint16_t panAngle, const uint16_t tiltAngle)
+{
+    pan = degree2raw(panAngle, PAN_CONV);
+    port_write(pan);
+    tilt = degree2raw(tiltAngle, TILT_CONV);
     port_write(tilt);
 }
 
@@ -53,7 +65,7 @@ void Head::cosinusMove(const uint16_t degree, const int multiplier)
 {
     pan = (degree*raw_pan_size/360)+HEAD_PAN_MIN;
     port_write(pan);
-    tilt = ((cos(degree*M_PI/180)*multiplier)/abs(multiplier))+(2*HEAD_TILT_MIN);
+    tilt = ((cos(degree*M_PI/180)*multiplier+1)/(abs(multiplier))+1)+(2*HEAD_TILT_MIN);
     port_write(tilt);
 }
 
