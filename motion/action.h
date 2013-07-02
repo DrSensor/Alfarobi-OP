@@ -8,11 +8,13 @@
 class Action
 {
 public:
-    Action();
+    static Action* GetInstance() { return m_UniqueInstance; }
 
-    action(uint32_t acts, uint8_t asMany_N_acts, useconds_t delay_steps);
+    void action(uint32_t acts, uint8_t asMany_N_acts, useconds_t delay_steps);
 
 private:
+    static Action* m_UniqueInstance;
+
     uint8_t lastStatus;
 };
 

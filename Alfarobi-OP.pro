@@ -11,7 +11,8 @@ SOURCES += main.cpp \
     imgproc/momentdetection.cpp \
     imgproc/circledetection.cpp \
     motion/head.cpp \
-    motion/action.cpp
+    motion/action.cpp \
+    std/minIni/minIni.c
 
 OTHER_FILES += \
     imgproc/README.md \
@@ -25,5 +26,10 @@ HEADERS += \
     motion/head.h \
     motion/action.h \
     motion/subcontroller.h \
-    motion/data_subcontroller.h
+    motion/data_subcontroller.h \
+    std/threading.h \
+    std/speed_test.h \
+    std/logfile.h \
+    std/minIni/minIni.h \
+    std/minIni/minGlue.h
 

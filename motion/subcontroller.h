@@ -25,8 +25,7 @@ void port_init()
     porting.Open(usb_port);
     if(!porting.good())
     {
-        cerr<<"["<<__FILE__<<":"<<__LINE__<<"]"
-           << "error bos!"
+        cerr << "Error: Could not open serial device !"
            << endl;
         exit(1);
     }

@@ -1,5 +1,7 @@
 #include "head.h"
 
+Head* Head::m_UniqueInstance = new Head();
+
 Head::Head()
 {
     raw_pan_size = HEAD_PAN_MAX - HEAD_PAN_MIN;

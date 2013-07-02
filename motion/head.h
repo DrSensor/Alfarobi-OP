@@ -15,17 +15,18 @@
 class Head
 {
 public:
-    Head();
+    static Head* GetInstance() { return m_UniqueInstance; }
 
     void sinusoidalSearch(const uint16_t degree_increment, const useconds_t delay_steps);
 
     void moveAt(uint16_t x, uint16_t y);
     void cosinusMove(const uint16_t degree, const int multiplier);
 
-    double getPan() const { return pan; }
-    double getTilt() const { return tilt; }
+    double getPanAngle() const { return pan; }
+    double getTiltAngle() const { return tilt; }
 
 private:
+    static Head* m_UniqueInstance;
     uint32_t pan, tilt, raw_pan_size, raw_tilt_size;
 };
 
