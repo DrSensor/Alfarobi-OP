@@ -68,26 +68,33 @@ void cam_init(VideoCapture &cam);
 
 void *actionStateMachine(void *arg)
 {
+    kepala->setTiltingPID(1/7, 1/14);
+    kepala->setPanningPID(1/8, 1/16);
+
     Do_Forever_Move {
         if (s_ball.not_found) {
             kepala->sinusoidalSearch(1, 500);
-            lakukan->action(ACTION_ROT_KA_PA, DEFAULT_ACTION_PARAM);
+            lakukan->action(ACTION_ROT_KA_PA);
         }
         else {
             kepala->targetLock(frame.x, frame.y);
             if (s_ball.is_far) {
-                lakukan->action(ACTION_MAJU_CEPAT, DEFAULT_ACTION_PARAM);
+                kepala->setTiltingPID(1/7, 1/14);
+                kepala->setPanningPID(1/8, 1/16);
+                lakukan->action(ACTION_MAJU_CEPAT);
             }
             if (s_ball.is_near) {
-                lakukan->action(ACTION_MAJU_LAMBAT, DEFAULT_ACTION_PARAM);
+                kepala->setTiltingPID(1/6, 1/12);
+                kepala->setPanningPID(1/7, 1/14);
+                lakukan->action(ACTION_MAJU_LAMBAT);
             }
             if (s_ball.in_foot_range) {
                 // cek kompas -> revolusi
                 while (!(constraintErr(compassHeading, enemyGoal, RALAT_COMPASS))) {
                     if (compassHeading > enemyGoal)
-                        lakukan->action(ACTION_REV_KA, DEFAULT_ACTION_PARAM);
+                        lakukan->action(ACTION_REV_KA);
                     else if (compassHeading < enemyGoal)
-                        lakukan->action(ACTION_REV_KI, DEFAULT_ACTION_PARAM);
+                        lakukan->action(ACTION_REV_KI);
                     kepala->targetLock(frame.x, frame.y);
                 }
 
@@ -96,23 +103,27 @@ void *actionStateMachine(void *arg)
                 kepala->sweepRight(180, 10, 5000);
                 kepala->sweepLeft(360, 20, 5000);
                 s_goal.in_search = false;
+                if (s_goal.probably_in_left)
+                    lakukan->action(ACTION_ROT_KI);
+                if (s_goal.probably_in_right)
+                    lakukan->action(ACTION_ROT_KA);
 
                 if (s_ball.ready_to_kick) {
                     kepala->moveAtAngle(KICK_TILT, KICK_PAN);
                     // compare frame of leg with frame camera for kick
                     if (between(KICK_FRAME_LEFTLEG_X_MIN, frame.x, KICK_FRAME_LEFTLEG_X_MAX)) {
-                        lakukan->action(ACTION_TENDANG_KI, DEFAULT_ACTION_PARAM);
+                        lakukan->action(ACTION_TENDANG_KI);
                         kepala->panning(40);
                     }
                     if (between(KICK_FRAME_RIGHTLEG_X_MIN, frame.x, KICK_FRAME_RIGHTLEG_X_MAX)) {
-                        lakukan->action(ACTION_TENDANG_KA, DEFAULT_ACTION_PARAM);
+                        lakukan->action(ACTION_TENDANG_KA);
                         kepala->panning(40);
                     }
                     if (!(s_ball.not_found)) {
                         if (frame.x < KICK_FRAME_CENTER_X)
-                            lakukan->action(ACTION_GES_KA, DEFAULT_ACTION_PARAM);
+                            lakukan->action(ACTION_GES_KA);
                         if (frame.x > KICK_FRAME_CENTER_Y)
-                            lakukan->action(ACTION_GES_KI, DEFAULT_ACTION_PARAM);
+                            lakukan->action(ACTION_GES_KI);
                     }
                 }
             }

@@ -1,16 +1,42 @@
 #include "head.h"
 
+#define SPEED   1
+
 Head* Head::m_UniqueInstance = new Head();
 
 Head::Head()
 {
     raw_pan_size = HEAD_PAN_MAX - HEAD_PAN_MIN;
     raw_tilt_size = HEAD_TILT_MAX - HEAD_TILT_MIN;
+    pan_lastErr = 0;
+    tilt_lastErr = 0;
 }
 
 void Head::targetLock(uint16_t frame_x, uint16_t frame_y)
 {
     // TODO : use PID Darwin
+    /*
+     * BallTracker.cpp -> pixel per image
+     *
+     */
+    // PID jimmy
+    pan_err = centerFrame_y - frame_y;
+    P_pan = pan_err*pan_P_gain;
+    D_pan = (pan_err-pan_lastErr)*pan_D_gain;
+    pan -= P_pan - D_pan;
+    if (pan > HEAD_PAN_MAX) pan = HEAD_PAN_MAX;
+    else if (pan < HEAD_PAN_MIN) pan = HEAD_PAN_MIN;
+    pan_lastErr = pan_err;
+    port_write(pan);
+
+    tilt_err = centerFrame_x - frame_x;
+    P_tilt = tilt_err*tilt_P_gain;
+    D_tilt = (tilt_err-pan_lastErr)*tilt_D_gain;
+    tilt += P_tilt + D_tilt;
+    if (tilt > HEAD_TILT_MAX) tilt = HEAD_TILT_MAX;
+    else if (tilt < HEAD_TILT_MIN) tilt = HEAD_TILT_MIN;
+    tilt_lastErr = pan_err;
+    port_write(tilt);
 }
 
 void Head::sinusoidalSearch(const uint16_t degree_increment, const useconds_t delay_steps)
@@ -53,7 +79,7 @@ void Head::tilting(const uint16_t angle)
     port_write(tilt);
 }
 
-void Head::moveAtAngle(const uint16_t panAngle, const uint16_t tiltAngle)
+void Head::moveAtAngle(const uint16_t tiltAngle, const uint16_t panAngle)
 {
     pan = degree2raw(panAngle, PAN_CONV);
     port_write(pan);
