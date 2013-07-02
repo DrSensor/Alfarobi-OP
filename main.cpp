@@ -3,6 +3,16 @@
 #define BALL_MIN_AREA   23
 #define BALL_MAX_RADIUS 10
 #define BALL_MIN_RADIUS 2
+
+#define KICK_PAN                    10
+#define KICK_TILT                   180
+#define KICK_FRAME_CENTER_X         10
+#define KICK_FRAME_CENTER_Y         10
+#define KICK_FRAME_LEFTLEG_X_MAX    5
+#define KICK_FRAME_LEFTLEG_X_MIN    2
+#define KICK_FRAME_RIGHTLEG_X_MAX   30
+#define KICK_FRAME_RIGHTLEG_X_MIN   20
+
 #define RALAT_COMPASS   10
 
 #include <iostream>
@@ -54,13 +64,16 @@ void setPos(const uint32_t posX, const uint32_t posY, const uint32_t posZ, bool 
 void setBallState();
 void setGoalState();
 
+void cam_init(VideoCapture &cam);
+
 void *actionStateMachine(void *arg)
 {
     Do_Forever_Move {
         if (s_ball.not_found) {
             kepala->sinusoidalSearch(1, 500);
+            lakukan->action(ACTION_ROT_KA_PA, DEFAULT_ACTION_PARAM);
         }
-        if (!(s_ball.not_found)) {
+        else {
             kepala->targetLock(frame.x, frame.y);
             if (s_ball.is_far) {
                 lakukan->action(ACTION_MAJU_CEPAT, DEFAULT_ACTION_PARAM);
@@ -69,7 +82,6 @@ void *actionStateMachine(void *arg)
                 lakukan->action(ACTION_MAJU_LAMBAT, DEFAULT_ACTION_PARAM);
             }
             if (s_ball.in_foot_range) {
-                // TODO : tambah library measurement
                 // cek kompas -> revolusi
                 while (!(constraintErr(compassHeading, enemyGoal, RALAT_COMPASS))) {
                     if (compassHeading > enemyGoal)
@@ -78,11 +90,30 @@ void *actionStateMachine(void *arg)
                         lakukan->action(ACTION_REV_KI, DEFAULT_ACTION_PARAM);
                     kepala->targetLock(frame.x, frame.y);
                 }
+
                 // cek gawang -> revolusi | geser
+                s_goal.in_search = true;
+                kepala->sweepRight(180, 10, 5000);
+                kepala->sweepLeft(360, 20, 5000);
+                s_goal.in_search = false;
+
                 if (s_ball.ready_to_kick) {
-                    // compare frame with pan tilt in midle
-                    // if in left frame , kick left
-                    // if in right frame, kick right
+                    kepala->moveAtAngle(KICK_TILT, KICK_PAN);
+                    // compare frame of leg with frame camera for kick
+                    if (between(KICK_FRAME_LEFTLEG_X_MIN, frame.x, KICK_FRAME_LEFTLEG_X_MAX)) {
+                        lakukan->action(ACTION_TENDANG_KI, DEFAULT_ACTION_PARAM);
+                        kepala->panning(40);
+                    }
+                    if (between(KICK_FRAME_RIGHTLEG_X_MIN, frame.x, KICK_FRAME_RIGHTLEG_X_MAX)) {
+                        lakukan->action(ACTION_TENDANG_KA, DEFAULT_ACTION_PARAM);
+                        kepala->panning(40);
+                    }
+                    if (!(s_ball.not_found)) {
+                        if (frame.x < KICK_FRAME_CENTER_X)
+                            lakukan->action(ACTION_GES_KA, DEFAULT_ACTION_PARAM);
+                        if (frame.x > KICK_FRAME_CENTER_Y)
+                            lakukan->action(ACTION_GES_KI, DEFAULT_ACTION_PARAM);
+                    }
                 }
             }
         }
@@ -96,10 +127,8 @@ int main()
     VideoCapture cam;
     Mat src, dst;
 
-    if (!cam.open(-1)) {
-        cerr << "Error : Couldn't open camera !\n";
-        exit(1);
-    }
+    cam_init(cam);
+    port_init();
 
     threadInitialize(gerakan_t, actionStateMachine, 30);
 
@@ -154,11 +183,11 @@ void setPos(const uint32_t posX, const uint32_t posY, const uint32_t posZ, bool 
 {
     frame.x = posX; frame.y = posY; frame.z = posZ;
     if (type) {
-        frameDepth.min = ;
-        frameDepth.max = ;
+        frameDepth.min = BALL_MIN_AREA;
+        frameDepth.max = BALL_MAX_AREA;
     } else {
-        frameDepth.min = ;
-        frameDepth.max = ;
+        frameDepth.min = BALL_MIN_RADIUS;
+        frameDepth.max = BALL_MAX_RADIUS;
     }
 }
 
@@ -187,4 +216,16 @@ void setBallState()
 
 void setGoalState()
 {
+}
+
+
+void cam_init(VideoCapture &cam)
+{
+    cam.set(CV_CAP_PROP_FRAME_WIDTH, 640);
+    cam.set(CV_CAP_PROP_FRAME_HEIGHT, 480);
+
+    if (!cam.open(-1)) {
+        cerr << "Error : Couldn't open camera !\n";
+        exit(1);
+    }
 }
