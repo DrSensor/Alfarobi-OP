@@ -1,6 +1,8 @@
 #ifndef CUSTOM_MATH_H
 #define CUSTOM_MATH_H
 
+#define between(min, var, max)  (min <= var && var <= max)
+
 namespace {
 
 bool constraintErr(unsigned short var_ukur, unsigned short nilai_pasti, unsigned short ralat, unsigned short max_ukur = 360)

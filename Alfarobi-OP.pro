@@ -31,5 +31,6 @@ HEADERS += \
     std/speed_test.h \
     std/logfile.h \
     std/minIni/minIni.h \
-    std/minIni/minGlue.h
+    std/minIni/minGlue.h \
+    std/custom_math.h
 

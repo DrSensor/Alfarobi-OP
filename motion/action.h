@@ -10,7 +10,7 @@ class Action
 public:
     static Action* GetInstance() { return m_UniqueInstance; }
 
-    void action(uint32_t acts, uint8_t asMany_N_acts, useconds_t delay_steps);
+    void action(uint32_t acts, uint8_t asMany_N_acts = 1, useconds_t delay_steps = 5000);
 
 private:
     static Action* m_UniqueInstance;
