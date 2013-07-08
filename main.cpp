@@ -15,6 +15,8 @@
 
 #define RALAT_COMPASS   10
 
+#define CONFIG_FILE     "config.ini"
+
 #include <iostream>
 
 #include "std/threading.h"
@@ -39,26 +41,34 @@ using namespace std;
 using namespace cv;
 
 pthread_t gerakan_t;
-struct MinMax {
-    int min,max;
-}frameDepth;
+struct MinMax { int min,max; }frameDepth;
 
 struct BallState {
-    bool not_found, is_far, is_near, in_foot_range, ready_to_kick;
+    bool not_found;
+    bool is_far;
+    bool is_near;
+    bool in_foot_range;
+    bool ready_to_kick;
     int8_t circle_counter; bool fail_to_detect_circle = false;
 }s_ball;
 struct GoalState {
-    bool not_found, in_search, probably_in_left, probably_in_right;
+    bool not_found;
+    bool in_search;
+    bool probably_in_left;
+    bool probably_in_right;
+    bool probably_in_center;
+    bool probably_in_above;
 }s_goal;
-struct Position {
-    int x,y,z;
-}frame;
+
+struct Position { int x,y,z; }frame;
 uint16_t compassHeading, enemyGoal;
+#define Cek_Kompas(goal)    !(constraintErr(compassHeading, goal, RALAT_COMPASS))
 
 #define kepala  Head::GetInstance()
 #define lakukan Action::GetInstance()
 MomentDetection m_ball, m_goal;
 CircleDetection m_circle;
+minIni *ini;
 
 void setPos(const uint32_t posX, const uint32_t posY, const uint32_t posZ, bool type);
 void setBallState();
@@ -68,8 +78,9 @@ void cam_init(VideoCapture &cam);
 
 void *actionStateMachine(void *arg)
 {
-    kepala->setTiltingPID(1/7, 1/14);
-    kepala->setPanningPID(1/8, 1/16);
+    kepala->loadINI(ini, "Motion Head");
+    kepala->setFrameXKalmanNoise(0.033, 0.01);
+    kepala->setFrameYKalmanNoise(0.04, 0.02);
 
     Do_Forever_Move {
         if (s_ball.not_found) {
@@ -77,7 +88,7 @@ void *actionStateMachine(void *arg)
             lakukan->action(ACTION_ROT_KA_PA);
         }
         else {
-            kepala->targetLock(frame.x, frame.y);
+            kepala->targetTracking(frame.x, frame.y);
             if (s_ball.is_far) {
                 kepala->setTiltingPID(1/7, 1/14);
                 kepala->setPanningPID(1/8, 1/16);
@@ -90,15 +101,16 @@ void *actionStateMachine(void *arg)
             }
             if (s_ball.in_foot_range) {
                 // cek kompas -> revolusi
-                while (!(constraintErr(compassHeading, enemyGoal, RALAT_COMPASS))) {
+                while (Cek_Kompas(enemyGoal)) {
                     if (compassHeading > enemyGoal)
                         lakukan->action(ACTION_REV_KA);
                     else if (compassHeading < enemyGoal)
                         lakukan->action(ACTION_REV_KI);
-                    kepala->targetLock(frame.x, frame.y);
+                    kepala->targetTracking(frame.x, frame.y);
                 }
 
                 // cek gawang -> revolusi | geser
+                /* metode sweep
                 s_goal.in_search = true;
                 kepala->sweepRight(180, 10, 5000);
                 kepala->sweepLeft(360, 20, 5000);
@@ -107,6 +119,16 @@ void *actionStateMachine(void *arg)
                     lakukan->action(ACTION_ROT_KI);
                 if (s_goal.probably_in_right)
                     lakukan->action(ACTION_ROT_KA);
+                */
+
+                // metode revolusi sambil ndangak
+                s_goal.in_search = true;
+                while (s_goal.not_found) {
+                    kepala->nod(180, 5, 10000);
+                    if (Cek_Kompas(enemyGoal+20)) lakukan->action(ACTION_REV_KA);
+                    if (Cek_Kompas(enemyGoal-20)) lakukan->action(ACTION_REV_KI);
+                }
+                s_goal.in_search = false;
 
                 if (s_ball.ready_to_kick) {
                     kepala->moveAtAngle(KICK_TILT, KICK_PAN);
@@ -137,9 +159,14 @@ int main()
 {
     VideoCapture cam;
     Mat src, dst;
+    ini = new minIni(CONFIG_FILE);
 
     cam_init(cam);
     port_init();
+
+    m_ball.loadINISettings(ini, "Ball");
+    m_circle.loadINISettings(ini, "Ball");
+    m_goal.loadINISettings(ini, "Goal");
 
     threadInitialize(gerakan_t, actionStateMachine, 30);
 
@@ -154,7 +181,7 @@ int main()
         setPos(m_ball.getX(), m_ball.getY(), m_ball.getArea(), MOMENT_DETECTION);
         setBallState();
 
-        while (s_ball.is_near || s_ball.in_foot_range && !(s_ball.fail_to_detect_circle)) {
+        while ((s_ball.is_near || s_ball.in_foot_range) && !(s_ball.fail_to_detect_circle)) {
             m_circle.threshold(&dst);
             if (m_circle.houghTransform(&dst) != 0)
                 s_ball.fail_to_detect_circle = false;
@@ -227,8 +254,19 @@ void setBallState()
 
 void setGoalState()
 {
-}
+    static bool goalie[3];
 
+    if (s_goal.in_search) {
+        if (frame.z != 0) goalie[0] = true;
+        if (frame.z == 0 && goalie[0]) goalie[1] = true;
+        if (frame.z != 0 && goalie[1]) goalie[2] = true;
+        if (goalie[0] && goalie[1] && goalie[2]) s_goal.probably_in_center = true;
+        if (kepala->getPanAngle() == 360)
+            if (goalie[0]) s_goal.probably_in_above = true;
+        // TODO : bug maybe in here !
+        if (goalie[0]) s_goal.probably_in_right = true;
+    }
+}
 
 void cam_init(VideoCapture &cam)
 {

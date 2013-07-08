@@ -2,10 +2,6 @@
 
 Action* Action::m_UniqueInstance = new Action();
 
-Action::Action()
-{
-}
-
 void Action::action(uint32_t acts, uint8_t asMany_N_acts, useconds_t delay_steps)
 {
     lastStatus = acts;

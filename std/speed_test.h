@@ -21,8 +21,8 @@ static struct timezone start_z, end_z;
 
 double uspeedMeasure()
 {
-    timersub(&end, &start, &res);
-    return ((double)res.tv_sec + (double)res.tv_usec/CLOCKS_PER_SEC);
+    timersub(&end_v, &start_v, &res_v);
+    return ((double)res_v.tv_sec + (double)res_v.tv_usec/CLOCKS_PER_SEC);
 }
 
 long nspeedMeasure()

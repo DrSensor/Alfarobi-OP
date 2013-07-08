@@ -2,6 +2,8 @@
 #define THREADING_H
 
 #include <pthread.h>
+#include <cstdio>
+#include <cstring>
 
 bool thread_start;
 
