@@ -3,6 +3,8 @@ CONFIG += console
 CONFIG -= app_bundle
 CONFIG -= qt
 
+QMAKE_CXX += -std=gnu++11
+
 LIBS += \
 -lopencv_core -lopencv_highgui -lopencv_imgproc \
 -lserial -lpthread

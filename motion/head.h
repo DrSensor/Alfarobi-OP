@@ -21,9 +21,8 @@ public:
     static Head* GetInstance() { return m_UniqueInstance; }
     Head();
 
-    // TODO : implement iterrupt
     // high level
-    void targetTracking(uint16_t frame_x, uint16_t frame_y);
+    void targetTracking(uint16_t frame_x, uint16_t frame_y, const uint8_t kalman_iteration = 1);
     void sinusoidalSearch(const uint16_t degree_increment, const useconds_t delay_steps);
 
     // medium level
@@ -63,19 +62,19 @@ private:
 
     struct P { double pan, tilt; } P_gain;
     struct D { double pan, tilt; } D_gain;
-    // PID variable
+    // PIDControll() variable
     int err, lastErr, sumErr;
 
     struct Q { double frame_x, frame_y; } P_noise;
     struct R { double frame_x, frame_y; } K_noise;
-    // Kalman variable
+    // kalmanFilter() variable
     double P_last;
     uint16_t raw_est, raw_est_last;
     uint16_t error_kalman;
     bool *flag_measure;
 
     uint32_t degree2raw(const uint16_t degree, bool type);
-    uint32_t kalmanFilter(uint16_t measured_val, uint8_t iteration, bool begin_measure, double Q, double R);
+    uint32_t kalmanFilter(uint16_t measured_val, const uint8_t iteration, bool begin_measure, const double Q, const double R);
     int PIDControll(uint16_t measured_val, const uint16_t ideal_val, double Kp, double Kd, double Ki = 0);
 };
 

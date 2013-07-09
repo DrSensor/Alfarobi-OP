@@ -9,14 +9,12 @@ Head::Head()
 {
     raw_pan_size = HEAD_PAN_MAX - HEAD_PAN_MIN;
     raw_tilt_size = HEAD_TILT_MAX - HEAD_TILT_MIN;
-    pan_lastErr = 0;
-    tilt_lastErr = 0;
     lastErr = 0;
     raw_est_last = 0;
     P_last = 0;
 }
 
-void Head::targetTracking(uint16_t frame_x, uint16_t frame_y)
+void Head::targetTracking(uint16_t frame_x, uint16_t frame_y, const uint8_t kalman_iteration)
 {
     // TODO : use PID Darwin
     /*
@@ -24,13 +22,13 @@ void Head::targetTracking(uint16_t frame_x, uint16_t frame_y)
      *
      */
     // PID jimmy
-    frame_y = kalmanFilter(frame_y, 1, *flag_measure, P_noise.frame_y, K_noise.frame_y);
+    frame_y = kalmanFilter(frame_y, kalman_iteration, *flag_measure, P_noise.frame_y, K_noise.frame_y);
     pan += PIDControll(frame_y, centerFrame_y, P_gain.pan, D_gain.pan);
     if (pan > HEAD_PAN_MAX) pan = HEAD_PAN_MAX;
     else if (pan < HEAD_PAN_MIN) pan = HEAD_PAN_MIN;
     port_write(pan);
 
-    frame_x = kalmanFilter(frame_x, 1, *flag_measure, P_noise.frame_x, K_noise.frame_x);
+    frame_x = kalmanFilter(frame_x, kalman_iteration, *flag_measure, P_noise.frame_x, K_noise.frame_x);
     tilt += PIDControll(frame_x, centerFrame_x, P_gain.tilt, D_gain.tilt);
     if (tilt > HEAD_TILT_MAX) tilt = HEAD_TILT_MAX;
     else if (tilt < HEAD_TILT_MIN) tilt = HEAD_TILT_MIN;
@@ -142,7 +140,7 @@ uint32_t Head::degree2raw(const uint16_t degree, bool type)
 }
 
 static bool temp_once = false;
-uint32_t Head::kalmanFilter(uint16_t measured_val, uint8_t iteration, bool begin_measure, double Q, double R)
+uint32_t Head::kalmanFilter(uint16_t measured_val, const uint8_t iteration, bool begin_measure, const double Q, const double R)
 {
     static double K, P, P_temp;
     static uint16_t raw_temp_est;
@@ -165,7 +163,7 @@ uint32_t Head::kalmanFilter(uint16_t measured_val, uint8_t iteration, bool begin
     */
 
     if (begin_measure) {
-        for (int i = 0; i <= iteration; ++i) {
+        for (int i = 0; i < iteration; ++i) {
             // do prediction
             raw_temp_est = raw_est_last;
             P_temp = P_last + Q;

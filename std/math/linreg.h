@@ -27,7 +27,9 @@
 */
 #ifndef _LINREG_H_
 #define _LINREG_H_
-#include <iostream.h>
+#include <iostream>
+
+using namespace std;
 
 class Point2D
 {
